@@ -1,0 +1,48 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: callio-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: callio
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: callio-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  freeswitch:
+    image: bettervoice/freeswitch-container:latest
+    container_name: callio-freeswitch
+    restart: unless-stopped
+    ports:
+      - "8021:8021" # ESL Event Socket
+      - "5060:5060/udp" # SIP UDP
+      - "5060:5060/tcp" # SIP TCP
+      - "5080:5080/udp" # Inbound SIP
+      - "16384-16484:16384-16484/udp" # RTP range
+    environment:
+      - ESL_PASSWORD=ClueCon
+
+volumes:
+  mongodb_data:
+  redis_data:
