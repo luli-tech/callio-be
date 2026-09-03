@@ -37,6 +37,7 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	engine := gin.New()
 
 	// Global Infrastructure Middlewares
+	engine.Use(middleware.CORS())
 	engine.Use(middleware.RequestLogger(cfg.Logger))
 	engine.Use(middleware.Recovery(cfg.Logger))
 	engine.Use(middleware.Metrics())
