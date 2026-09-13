@@ -37,10 +37,36 @@ Backend service built with Go.
    curl http://localhost:8080/health
    ```
 
+## Local Jasmin SMS Gateway
+
+Start Jasmin and its dependencies:
+
+```bash
+make jasmin-up
+```
+
+Create the local HTTP API user configured in `.env`:
+
+```bash
+make jasmin-user
+```
+
+The local development credentials are:
+
+```env
+JASMIN_BASE_URL=http://localhost:1401
+JASMIN_USERNAME=callio_user
+JASMIN_PASSWORD=callio_secret
+```
+
+Jasmin still needs an SMPP connector and route from a real SMS provider before messages can leave your machine.
+
 ## Available Make Commands
 
 - `make build` - Builds the binary into `bin/api`
 - `make run` - Starts the application
 - `make test` - Runs test suite with race detector enabled
 - `make tidy` - Cleans up and verifies `go.mod` dependencies
+- `make jasmin-up` - Starts Redis, RabbitMQ, and Jasmin
+- `make jasmin-user` - Creates the local Jasmin HTTP API user
 - `make clean` - Removes generated build binaries

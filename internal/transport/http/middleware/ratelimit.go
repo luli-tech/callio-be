@@ -51,4 +51,3 @@ func RateLimiter(client *redis.Client, requestsPerMinute int) gin.HandlerFunc {
 		c.Next()
 	}
 }
-

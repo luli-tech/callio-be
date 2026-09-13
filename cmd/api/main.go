@@ -7,22 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
-	"time"
 
+	"github.com/luli-tech/twilio-Boss/internal/app"
 	"github.com/luli-tech/twilio-Boss/internal/config"
-	"github.com/luli-tech/twilio-Boss/internal/domain"
 	"github.com/luli-tech/twilio-Boss/internal/repository/mongodb"
 	redisRepo "github.com/luli-tech/twilio-Boss/internal/repository/redis"
-	"github.com/luli-tech/twilio-Boss/internal/service/auth"
-	"github.com/luli-tech/twilio-Boss/internal/service/billing"
-	"github.com/luli-tech/twilio-Boss/internal/service/sms"
-	"github.com/luli-tech/twilio-Boss/internal/service/user"
-	"github.com/luli-tech/twilio-Boss/internal/service/voice"
-	httpTransport "github.com/luli-tech/twilio-Boss/internal/transport/http"
-	"github.com/luli-tech/twilio-Boss/pkg/eslclient"
-	"github.com/luli-tech/twilio-Boss/pkg/idempotency"
 	"github.com/luli-tech/twilio-Boss/pkg/logger"
 )
 
@@ -64,57 +54,18 @@ func main() {
 		defer redisClient.Close()
 	}
 
-	// 5. Initialize FreeSWITCH ESL Client
-	eslClient := eslclient.NewClient(eslclient.Config{
-		Host:     cfg.FreeSWITCH.Host,
-		Port:     cfg.FreeSWITCH.Port,
-		Password: cfg.FreeSWITCH.Password,
-		Timeout:  cfg.FreeSWITCH.Timeout,
+	// 6. Assemble application modules and HTTP transport
+	application := app.New(app.Dependencies{
+		Config:      cfg,
+		Logger:      log,
+		DB:          db,
+		RedisClient: redisClient,
 	})
-	defer eslClient.Close()
-
-	// 6. Initialize Repositories
-	accountRepo := mongodb.NewAccountRepo(db)
-	userRepo := mongodb.NewUserRepo(db)
-	smsRepo := mongodb.NewSMSRepo(db)
-	callRepo := mongodb.NewCallRepo(db)
-
-	// 7. Initialize Idempotency Manager
-	idempotencyMgr := idempotency.NewManager(redisClient, cfg.Idempotency.DefaultTTL)
-
-	// 8. Initialize Domain Services
-	billingEngine := billing.NewEngine(accountRepo, redisClient, log)
-	userService := user.NewService(userRepo)
-	authService := auth.NewService(accountRepo, userRepo, cfg.JWT)
-	var smsGateway domain.SMSGateway = sms.NewMockGateway(50 * time.Millisecond)
-	if strings.EqualFold(cfg.SMSGateway.Provider, "jasmin") {
-		smsGateway = sms.NewJasminGateway(cfg.SMSGateway)
-	}
-	smsService := sms.NewService(smsRepo, billingEngine, smsGateway, &cfg.Billing, log)
-	defer smsService.Close()
-
-	voiceEngine := voice.NewEngine(eslClient, callRepo, billingEngine, log)
-	_ = userService
-	_ = authService
-	_ = voiceEngine
-
-	// 9. Assemble HTTP Transport Router
-	engine := httpTransport.NewRouter(httpTransport.RouterConfig{
-		Config:         cfg,
-		Logger:         log,
-		DB:             db,
-		RedisClient:    redisClient,
-		AccountRepo:    accountRepo,
-		BillingService: billingEngine,
-		AuthService:    authService,
-		UserService:    userService,
-		SMSService:     smsService,
-		IdempotencyMgr: idempotencyMgr,
-	})
+	defer application.Close()
 
 	httpServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.App.Port),
-		Handler:      engine,
+		Handler:      application.Engine,
 		ReadTimeout:  cfg.App.ReadTimeout,
 		WriteTimeout: cfg.App.WriteTimeout,
 		IdleTimeout:  cfg.App.IdleTimeout,

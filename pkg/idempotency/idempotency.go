@@ -139,4 +139,3 @@ func (m *Manager) Release(ctx context.Context, key string) error {
 	redisKey := m.formatKey(key)
 	return m.redisClient.Del(ctx, redisKey).Err()
 }
-

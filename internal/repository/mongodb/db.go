@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/luli-tech/twilio-Boss/internal/config"
@@ -11,13 +10,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-var ErrDatabaseUnavailable = errors.New("mongodb database is unavailable")
-
 const (
 	accountsCollection     = "accounts"
 	transactionsCollection = "transactions"
 	smsCollection          = "sms_messages"
-	callsCollection        = "call_sessions"
 	usersCollection        = "users"
 )
 
@@ -59,10 +55,6 @@ func ensureIndexes(ctx context.Context, db *mongo.Database) error {
 			{Keys: bson.D{{Key: "sid", Value: 1}}, Options: options.Index().SetUnique(true)},
 			{Keys: bson.D{{Key: "carrier_id", Value: 1}}},
 			{Keys: bson.D{{Key: "account_id", Value: 1}, {Key: "created_at", Value: -1}}},
-		},
-		callsCollection: {
-			{Keys: bson.D{{Key: "sid", Value: 1}}, Options: options.Index().SetUnique(true)},
-			{Keys: bson.D{{Key: "account_id", Value: 1}}},
 		},
 		usersCollection: {
 			{Keys: bson.D{{Key: "email", Value: 1}}, Options: options.Index().SetUnique(true)},

@@ -94,4 +94,3 @@ func (l *Logger) WithContext(ctx context.Context) *Logger {
 		Logger: l.With(attrs...),
 	}
 }
-

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/luli-tech/twilio-Boss/internal/config"
+	"github.com/redis/go-redis/v9"
 )
 
 // NewClient initializes and verifies a Redis connection pool.
@@ -31,4 +31,3 @@ func NewClient(ctx context.Context, cfg *config.RedisConfig) (*redis.Client, err
 
 	return client, nil
 }
-

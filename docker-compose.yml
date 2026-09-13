@@ -30,19 +30,41 @@ services:
       timeout: 5s
       retries: 5
 
-  freeswitch:
-    image: bettervoice/freeswitch-container:latest
-    container_name: callio-freeswitch
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: callio-rabbitmq
     restart: unless-stopped
     ports:
-      - "8021:8021" # ESL Event Socket
-      - "5060:5060/udp" # SIP UDP
-      - "5060:5060/tcp" # SIP TCP
-      - "5080:5080/udp" # Inbound SIP
-      - "16384-16484:16384-16484/udp" # RTP range
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  jasmin:
+    image: jookies/jasmin:0.11.0
+    container_name: callio-jasmin
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
-      - ESL_PASSWORD=ClueCon
+      REDIS_CLIENT_HOST: redis
+      AMQP_BROKER_HOST: rabbitmq
+    ports:
+      - "1401:1401" # HTTP API
+      - "2775:2775" # SMPP server
+      - "8990:8990" # jCli management console
+    volumes:
+      - jasmin_config:/etc/jasmin
+      - jasmin_logs:/var/log/jasmin
 
 volumes:
   mongodb_data:
   redis_data:
+  jasmin_config:
+  jasmin_logs:

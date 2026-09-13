@@ -6,17 +6,15 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/luli-tech/twilio-Boss/internal/domain"
+	"github.com/luli-tech/twilio-Boss/internal/features/account"
+	"github.com/luli-tech/twilio-Boss/internal/features/auth"
+	"github.com/luli-tech/twilio-Boss/internal/shared/apperrors"
+	"github.com/luli-tech/twilio-Boss/internal/shared/session"
 	"github.com/luli-tech/twilio-Boss/pkg/logger"
 )
 
-const (
-	ContextAccountKey = "authenticated_account"
-	ContextUserKey    = "authenticated_user"
-)
-
 // Auth authenticates requests using Twilio-style HTTP Basic Auth (AccountSID:AuthToken) or Bearer Token.
-func Auth(accountRepo domain.AccountRepository, authServices ...domain.AuthService) gin.HandlerFunc {
+func Auth(accountRepo account.Repository, authServices ...auth.ServiceContract) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		username, password, hasBasic := c.Request.BasicAuth()
 		var accountSID, authToken string
@@ -47,8 +45,8 @@ func Auth(accountRepo domain.AccountRepository, authServices ...domain.AuthServi
 						return
 					}
 
-					c.Set(ContextAccountKey, acc)
-					c.Set(ContextUserKey, claims)
+					c.Set(session.ContextAccountKey, acc)
+					c.Set(session.ContextUserKey, claims)
 					c.Set(string(logger.AccountSIDKey), acc.SID)
 					c.Next()
 					return
@@ -65,7 +63,7 @@ func Auth(accountRepo domain.AccountRepository, authServices ...domain.AuthServi
 			return
 		}
 
-		var acc *domain.Account
+		var acc *account.Account
 		var err error
 
 		if accountSID != "" {
@@ -73,7 +71,7 @@ func Auth(accountRepo domain.AccountRepository, authServices ...domain.AuthServi
 		}
 
 		if err != nil || acc == nil {
-			if errors.Is(err, domain.ErrAccountNotFound) || acc == nil {
+			if errors.Is(err, apperrors.ErrAccountNotFound) || acc == nil {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"code":    "INVALID_CREDENTIALS",
 					"message": "Invalid Account SID or Auth Token",
@@ -105,7 +103,7 @@ func Auth(accountRepo domain.AccountRepository, authServices ...domain.AuthServi
 		}
 
 		// Inject into gin context
-		c.Set(ContextAccountKey, acc)
+		c.Set(session.ContextAccountKey, acc)
 		c.Set(string(logger.AccountSIDKey), acc.SID)
 
 		c.Next()
@@ -113,12 +111,12 @@ func Auth(accountRepo domain.AccountRepository, authServices ...domain.AuthServi
 }
 
 // GetTokenClaims helper retrieves authenticated JWT user claims from gin context.
-func GetTokenClaims(c *gin.Context) *domain.TokenClaims {
-	val, exists := c.Get(ContextUserKey)
+func GetTokenClaims(c *gin.Context) *auth.TokenClaims {
+	val, exists := c.Get(session.ContextUserKey)
 	if !exists {
 		return nil
 	}
-	claims, ok := val.(*domain.TokenClaims)
+	claims, ok := val.(*auth.TokenClaims)
 	if !ok {
 		return nil
 	}
@@ -126,12 +124,12 @@ func GetTokenClaims(c *gin.Context) *domain.TokenClaims {
 }
 
 // GetAccount helper retrieves authenticated Account from gin context.
-func GetAccount(c *gin.Context) *domain.Account {
-	val, exists := c.Get(ContextAccountKey)
+func GetAccount(c *gin.Context) *account.Account {
+	val, exists := c.Get(session.ContextAccountKey)
 	if !exists {
 		return nil
 	}
-	acc, ok := val.(*domain.Account)
+	acc, ok := val.(*account.Account)
 	if !ok {
 		return nil
 	}

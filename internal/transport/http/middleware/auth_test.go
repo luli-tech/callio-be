@@ -7,31 +7,32 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/luli-tech/twilio-Boss/internal/domain"
+	"github.com/luli-tech/twilio-Boss/internal/features/account"
+	"github.com/luli-tech/twilio-Boss/internal/shared/apperrors"
 )
 
 type mockAccountRepo struct {
-	accounts map[string]*domain.Account
+	accounts map[string]*account.Account
 }
 
-func (m *mockAccountRepo) GetByID(ctx context.Context, id string) (*domain.Account, error) {
+func (m *mockAccountRepo) GetByID(ctx context.Context, id string) (*account.Account, error) {
 	acc, ok := m.accounts[id]
 	if !ok {
-		return nil, domain.ErrAccountNotFound
+		return nil, apperrors.ErrAccountNotFound
 	}
 	return acc, nil
 }
 
-func (m *mockAccountRepo) GetBySID(ctx context.Context, sid string) (*domain.Account, error) {
+func (m *mockAccountRepo) GetBySID(ctx context.Context, sid string) (*account.Account, error) {
 	for _, acc := range m.accounts {
 		if acc.SID == sid {
 			return acc, nil
 		}
 	}
-	return nil, domain.ErrAccountNotFound
+	return nil, apperrors.ErrAccountNotFound
 }
 
-func (m *mockAccountRepo) Create(ctx context.Context, account *domain.Account) error {
+func (m *mockAccountRepo) Create(ctx context.Context, account *account.Account) error {
 	m.accounts[account.ID] = account
 	return nil
 }
@@ -39,7 +40,7 @@ func (m *mockAccountRepo) Create(ctx context.Context, account *domain.Account) e
 func (m *mockAccountRepo) UpdateCredentials(ctx context.Context, accountID, sid, authToken string) error {
 	acc, ok := m.accounts[accountID]
 	if !ok {
-		return domain.ErrAccountNotFound
+		return apperrors.ErrAccountNotFound
 	}
 	acc.SID = sid
 	acc.AuthToken = authToken
@@ -50,7 +51,7 @@ func (m *mockAccountRepo) UpdateBalance(ctx context.Context, accountID string, n
 	return nil
 }
 
-func (m *mockAccountRepo) RecordTransaction(ctx context.Context, tx *domain.Transaction) error {
+func (m *mockAccountRepo) RecordTransaction(ctx context.Context, tx *account.Transaction) error {
 	return nil
 }
 
@@ -58,12 +59,12 @@ func TestAuth_BasicAuth_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &mockAccountRepo{
-		accounts: map[string]*domain.Account{
+		accounts: map[string]*account.Account{
 			"acc-1": {
 				ID:        "acc-1",
 				SID:       "AC12345",
 				AuthToken: "secret_token_123",
-				Status:    domain.AccountStatusActive,
+				Status:    account.StatusActive,
 			},
 		},
 	}
@@ -94,12 +95,12 @@ func TestAuth_BasicAuth_InvalidCredentials(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &mockAccountRepo{
-		accounts: map[string]*domain.Account{
+		accounts: map[string]*account.Account{
 			"acc-1": {
 				ID:        "acc-1",
 				SID:       "AC12345",
 				AuthToken: "secret_token_123",
-				Status:    domain.AccountStatusActive,
+				Status:    account.StatusActive,
 			},
 		},
 	}
@@ -125,12 +126,12 @@ func TestAuth_SuspendedAccount(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &mockAccountRepo{
-		accounts: map[string]*domain.Account{
+		accounts: map[string]*account.Account{
 			"acc-1": {
 				ID:        "acc-1",
 				SID:       "AC12345",
 				AuthToken: "secret_token_123",
-				Status:    domain.AccountStatusSuspended,
+				Status:    account.StatusSuspended,
 			},
 		},
 	}

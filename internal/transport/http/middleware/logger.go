@@ -45,4 +45,3 @@ func RequestLogger(log *logger.Logger) gin.HandlerFunc {
 		)
 	}
 }
-

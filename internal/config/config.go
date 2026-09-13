@@ -13,7 +13,6 @@ type Config struct {
 	MongoDB     MongoDBConfig
 	Redis       RedisConfig
 	SMSGateway  SMSGatewayConfig
-	FreeSWITCH  FreeSWITCHConfig
 	Billing     BillingConfig
 	RateLimit   RateLimitConfig
 	Idempotency IdempotencyConfig
@@ -70,19 +69,10 @@ func (r *RedisConfig) Addr() string {
 	return fmt.Sprintf("%s:%d", r.Host, r.Port)
 }
 
-// FreeSWITCHConfig defines FreeSWITCH Event Socket options.
-type FreeSWITCHConfig struct {
-	Host     string
-	Port     int
-	Password string
-	Timeout  time.Duration
-}
-
 // BillingConfig defines pricing defaults in micro-units ($1.00 = 1,000,000 micro-units).
 type BillingConfig struct {
-	DefaultRatePerSMS        int64 // e.g., 7500 micro-units = $0.0075 / SMS
-	DefaultRatePerCallMinute int64 // e.g., 13000 micro-units = $0.013 / min
-	Currency                 string
+	DefaultRatePerSMS int64 // e.g., 7500 micro-units = $0.0075 / SMS
+	Currency          string
 }
 
 // RateLimitConfig defines API rate limiter parameters.
@@ -128,16 +118,9 @@ func Load() *Config {
 			DLRURL:   getEnv("JASMIN_DLR_URL", ""),
 			Timeout:  getEnvAsDuration("SMS_GATEWAY_TIMEOUT", 10*time.Second),
 		},
-		FreeSWITCH: FreeSWITCHConfig{
-			Host:     getEnv("FREESWITCH_HOST", "localhost"),
-			Port:     getEnvAsInt("FREESWITCH_PORT", 8021),
-			Password: getEnv("FREESWITCH_PASSWORD", "ClueCon"),
-			Timeout:  getEnvAsDuration("FREESWITCH_TIMEOUT", 5*time.Second),
-		},
 		Billing: BillingConfig{
-			DefaultRatePerSMS:        getEnvAsInt64("BILLING_RATE_PER_SMS", 7500),       // $0.0075
-			DefaultRatePerCallMinute: getEnvAsInt64("BILLING_RATE_PER_CALL_MIN", 13000), // $0.0130
-			Currency:                 getEnv("BILLING_CURRENCY", "USD"),
+			DefaultRatePerSMS: getEnvAsInt64("BILLING_RATE_PER_SMS", 7500), // $0.0075
+			Currency:          getEnv("BILLING_CURRENCY", "USD"),
 		},
 		RateLimit: RateLimitConfig{
 			RequestsPerMinute: getEnvAsInt("RATE_LIMIT_RPM", 600),
